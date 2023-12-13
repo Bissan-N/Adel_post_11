@@ -13,8 +13,8 @@ library(knitr)
 library(rmarkdown)
 ```
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE, include=TRUE)
 ```
 
 Load and process the raw data
@@ -95,7 +95,7 @@ plot(interval,mean_steps, pch=2, type="l", main="Average Number of Steps Taken b
 legend(50,125,legend="Weekend")
 with(subset(tabdata5,tabdata5$weekday_fac=="weekday"),
 plot(interval,mean_steps, pch=2, type="l", ylab="Average Number of Steps", xlab="Five-Minute Interval"))
-legend(50,150,legend="Weekday")
+legend(20,150,legend="Weekday")
 ```
  
 Overall, the number of steps taken during the weekend are higher than on weekdays.
