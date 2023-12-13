@@ -1,25 +1,99 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template"
+author: "SM"
+date: "2023-12-08"
+output: html_document
 ---
 
+```{r load_packages}
+library(tidyverse)
+library(knitr)
+library(rmarkdown)
+```
 
-## Loading and preprocessing the data
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load and process the raw data
+```{r load_data}
+rawdata<-read.csv("activity.csv", header = TRUE, sep=",")
+rawdata$date <- as.Date(rawdata$date, format="%Y-%m-%d")
+```
+
+---
+
+Calculate totals, mean, and median number of steps per day
+```{r meantotals}
+tabdata <-subset(rawdata, is.na(steps)==FALSE,1:2) %>%
+  group_by(date) %>%
+  summarize(Total_Steps=sum(steps,na.rm=TRUE))
+  hist(tabdata$Total_Steps, main="Total Steps Taken Per Day", xlab="Number of Steps", ylab="Frequency")
+```
+
+The mean and median number of steps taken per day were **`r format(mean(tabdata$Total_Steps, na.rm=TRUE),scientific=FALSE)`** and **`r median(tabdata$Total_Steps, na.rm=TRUE)`**, respectively.
+
+---
+
+# What is the average daily activity pattern?
+
+```{r avg_daily_activity}
+tabdata2<- rawdata %>%
+  group_by(interval) %>%
+  summarize(mean_steps=mean(steps, na.rm=TRUE))
+
+plot(tabdata2$interval, tabdata2$mean_steps, pch=2, type="l", main="Average Number of Steps Taken (averaged across all days)", ylab="Average Number of Steps", xlab="Five-Minute Interval")
+```
+
+The 5-minute interval, on average across all the days in the dataset, that contains the maximum number of steps is interval **`r tabdata2$interval[which.max(tabdata2$mean_steps)]`**.
+
+---
+# Imputing missing values
+
+The total number of missing values in the dataset (i.e. the total number of rows with NAs) is **`r sum(is.na(rawdata$steps))`**.
+
+Missing values will be imputed using the median across all days for an interval
 
 
+```{r data_impute}
+  tabdata3 <- rawdata %>%
+  group_by(interval) %>%
+  summarize(median_steps=median(steps, na.rm=TRUE))
+  rawdata_merge <- merge(rawdata,tabdata3, by="interval", sort=FALSE)
+  rawdata_merge <- arrange(rawdata_merge, date,interval)
+  indices_na <- which(is.na(rawdata$steps)==TRUE)
+  rawdata_nona <- rawdata_merge
+  rawdata_nona[indices_na,"steps"] <- rawdata_merge[indices_na,"median_steps"]
+  tabdata4 <- rawdata_nona %>%
+    group_by(date) %>%
+    summarize(Total_Steps=sum(steps,na.rm=TRUE))
+  hist(tabdata4$Total_Steps, main="Total Steps Taken Per Day", xlab="Number of Steps", ylab="Frequency")  
+```
 
-## What is mean total number of steps taken per day?
+
+The mean and median number of steps taken per day were **`r format(mean(tabdata4$Total_Steps, na.rm=TRUE),scientific=FALSE)`** and **`r median(tabdata4$Total_Steps, na.rm=TRUE)`**, respectively. These values differ from the previously calculated estimates. Both of these values for the steps per day are higher than the values computed for the data without missing values imputed.
 
 
+---
 
-## What is the average daily activity pattern?
+# Are there differences in activity patterns between weekdays and weekends?
 
+```{r weekday_weekend_anal}
+  rawdata_nona$weekday <- weekdays(rawdata_nona$date)
+  rawdata_nona$weekday_fac <- factor((rawdata_nona$weekday %in% c("Saturday","Sunday")), levels=c("TRUE","FALSE"),labels=c("weekend","weekday"))
+  
+  tabdata5 <- rawdata_nona %>%
+    select(-median_steps) %>%
+    group_by(weekday_fac, interval) %>%
+    summarize(mean_steps=mean(steps, na.rm=TRUE))
 
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+par(mfrow=c(2,1), mar=c(4, 4, 2, 2))
+with(subset(tabdata5,tabdata5$weekday_fac=="weekend"),
+plot(interval,mean_steps, pch=2, type="l", main="Average Number of Steps Taken by Day of Week",ylab="Average Number of Steps", xlab="Five-Minute Interval"))
+legend(50,125,legend="Weekend")
+with(subset(tabdata5,tabdata5$weekday_fac=="weekday"),
+plot(interval,mean_steps, pch=2, type="l", ylab="Average Number of Steps", xlab="Five-Minute Interval"))
+legend(50,150,legend="Weekday")
+```
+ 
+Overall, the number of steps taken during the weekend are higher than on weekdays.
